@@ -90,11 +90,9 @@ export default function IntegrityPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
                 <tr>
-                  <th scope="col" className="px-4 py-3">Entry</th>
-                  <th scope="col" className="px-4 py-3">Created</th>
+                  <th scope="col" className="px-4 py-3">Entry / created</th>
                   <th scope="col" className="px-4 py-3">Chain status</th>
-                  <th scope="col" className="px-4 py-3">Transaction</th>
-                  <th scope="col" className="px-4 py-3">Network</th>
+                  <th scope="col" className="px-4 py-3">Transaction / network</th>
                   <th scope="col" className="px-4 py-3">Record ID</th>
                   <th scope="col" className="px-4 py-3">Verification</th>
                   <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
@@ -105,12 +103,16 @@ export default function IntegrityPage() {
                   const res = results[r.recordId];
                   return (
                     <tr key={r.recordId} className={res?.status === 'tampered' ? 'bg-rose-50/60' : ''}>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatEntryDate(r.entryDate, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDateTime(r.createdAt)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="block font-medium text-slate-800">{formatEntryDate(r.entryDate, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <span className="block text-xs text-slate-500">Created {formatDateTime(r.createdAt)}</span>
+                      </td>
                       <td className="px-4 py-3"><ChainStatusBadge status={r.chainStatus} /></td>
-                      <td className="px-4 py-3 font-mono text-xs" title={r.txHash ?? ''}>{r.txHash ? shortHash(r.txHash) : '—'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">{r.chainId ? `${NETWORK_NAME} (${r.chainId})` : '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs" title={r.recordId}>{shortHash(r.recordId)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="block font-mono text-xs" title={r.txHash ?? ''}>{r.txHash ? shortHash(r.txHash) : '—'}</span>
+                        <span className="block text-xs text-slate-500">{r.chainId ? `${NETWORK_NAME} (${r.chainId})` : 'Not on-chain'}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap" title={r.recordId}>{shortHash(r.recordId)}</td>
                       <td className="px-4 py-3">
                         {res === 'loading' ? (
                           <Spinner className="h-4 w-4 text-slate-400" />
@@ -126,7 +128,7 @@ export default function IntegrityPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 whitespace-nowrap">
                           <Button variant="secondary" className="!px-3 !py-1.5" onClick={() => verifyOne(r)} disabled={res === 'loading'}>
                             Verify
                           </Button>

@@ -132,3 +132,23 @@ Event parameters are only addresses, `bytes32` values and integers. The contract
 | 8 | Analytics & appointments | Backend analytics aggregation, Recharts views, appointment model/API/UI, authorization tests |
 | 9 | Integration | End-to-end workflow script against Hardhat node + MongoDB, bug fixing |
 | 10 | Documentation | README: setup, env vars, deployment, tests, API reference, troubleshooting, limitations |
+
+## 6. Status (all phases complete)
+
+| Phase | Status | Verified by |
+|---|---|---|
+| 1 Inspect & structure | Done | — |
+| 2 Backend foundation | Done | auth, RBAC, middleware tests |
+| 3 Encryption & wellness API | Done | crypto + wellness API tests (tamper, isolation, no plaintext at rest) |
+| 4 Smart contract | Done | 23 Hardhat tests; Ignition deploy to a local node |
+| 5 Chain + MetaMask integration | Done | wallet-linking tests; chain-service integration tests against a real Hardhat node |
+| 6 Consent & verification | Done | anchoring/verification and consent-gate tests; real-chain e2e |
+| 7 Dashboards | Done | client build; Playwright browser suite |
+| 8 Analytics & appointments | Done | analytics, export and appointment tests |
+| 9 Integration | Done | `npm run test:e2e`: 11 browser tests across all three roles on a real stack. Fixes: ethers code-split (initial bundle 600 kB → 347 kB), chart tick labels, integrity table layout, badge wrapping, header name, neutral chart wording |
+| 10 Documentation | Done | README.md, docs/API.md, `.env.example` files, demo seed script |
+
+Deviations from the original plan:
+- Backend tests use Node's built-in test runner instead of Jest, because Jest's ESM support is still experimental.
+- Solidity 0.8.34 instead of 0.8.28; 0.8.34 is the version in Hardhat 3's official template.
+- Mongoose's global `sanitizeFilter` is off. Operator injection is blocked by strict zod schemas, and a test covers it.

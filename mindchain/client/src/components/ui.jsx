@@ -84,7 +84,7 @@ const BADGE_STYLES = {
 
 export function Badge({ color = 'gray', children, className }) {
   return (
-    <span className={cx('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', BADGE_STYLES[color], className)}>
+    <span className={cx('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap', BADGE_STYLES[color], className)}>
       {children}
     </span>
   );

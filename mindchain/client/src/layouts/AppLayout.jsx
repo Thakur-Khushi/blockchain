@@ -136,7 +136,7 @@ export default function AppLayout() {
             <Icon name="menu" />
           </button>
           <span className="hidden text-sm text-slate-500 lg:block">
-            Welcome back, <span className="font-medium text-slate-800">{user?.name?.split(' ')[0]}</span>
+            Welcome back, <span className="font-medium text-slate-800">{user?.name}</span>
           </span>
           <WalletPill />
         </header>

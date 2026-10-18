@@ -1,0 +1,19 @@
+{
+  "name": "mindchain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MindChain — blockchain-based mental health monitoring and patient–therapist management",
+  "scripts": {
+    "install:all": "npm install --prefix blockchain && npm install --prefix server && npm install --prefix client && npm install --prefix e2e",
+    "chain": "npm run node --prefix blockchain",
+    "deploy": "npm run compile --prefix blockchain && npm run deploy:local --prefix blockchain",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "seed:admin": "npm run seed:admin --prefix server",
+    "seed:demo": "npm run seed:demo --prefix server",
+    "test:contracts": "npm test --prefix blockchain",
+    "test:server": "npm test --prefix server",
+    "test:e2e": "npm test --prefix e2e",
+    "test": "npm run test:contracts && npm run test:server && npm run build --prefix client && npm run test:e2e"
+  }
+}

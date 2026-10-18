@@ -171,14 +171,14 @@ function AverageBars({ data, xKey, xFormat, title, description, height }) {
 }
 
 export function WeeklyAveragesChart({ weekly, height }) {
-  return <AverageBars data={weekly} xKey="weekStart" xFormat={(d) => shortDate(d)} title="Weekly averages" description="Average of the days you checked in, per week (Mon–Sun)." height={height} />;
+  return <AverageBars data={weekly} xKey="weekStart" xFormat={(d) => shortDate(d)} title="Weekly averages" description="Average over days with a check-in, per week (Mon–Sun)." height={height} />;
 }
 
 export function MonthlyAveragesChart({ monthly, height }) {
-  return <AverageBars data={monthly} xKey="month" xFormat={monthLabel} title="Monthly averages" description="Average of the days you checked in, per month." height={height} />;
+  return <AverageBars data={monthly} xKey="month" xFormat={monthLabel} title="Monthly averages" description="Average over days with a check-in, per month." height={height} />;
 }
 
-export function CompletionChart({ weekly, height = 200 }) {
+export function CompletionChart({ weekly, height }) {
   const rows = weekly.map((w) => ({ ...w, label: w.weekStart }));
   return (
     <ChartFrame
@@ -191,7 +191,7 @@ export function CompletionChart({ weekly, height = 200 }) {
       <BarChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: -16 }} barCategoryGap="30%">
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={AXIS_TEXT} tickLine={false} axisLine={{ stroke: GRID }} />
-        <YAxis domain={[0, 7]} ticks={[0, 1, 2, 3, 4, 5, 6, 7]} allowDecimals={false} tick={AXIS_TEXT} tickLine={false} axisLine={false} />
+        <YAxis domain={[0, 7]} ticks={[0, 1, 2, 3, 4, 5, 6, 7]} interval={0} allowDecimals={false} tick={AXIS_TEXT} tickLine={false} axisLine={false} />
         <Tooltip content={<ChartTooltip labelFormatter={shortDate} unit=" days" />} cursor={{ fill: '#f1f5f9' }} />
         <Bar dataKey="checkIns" name="Check-ins" fill={SERIES.checkIns.color} maxBarSize={24} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>

@@ -1,7 +1,6 @@
-import { BrowserProvider, toQuantity } from 'ethers';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api.js';
-import { describeChainError, EXPECTED_CHAIN_ID, getMindChain, NETWORK_NAME } from '../services/contract.js';
+import { describeChainError, EXPECTED_CHAIN_ID, getMindChain, loadEthers, NETWORK_NAME } from '../services/contract.js';
 import { useAuth } from './AuthContext.jsx';
 
 const WalletContext = createContext(null);
@@ -58,7 +57,7 @@ export function WalletProvider({ children }) {
   const switchNetwork = useCallback(async () => {
     const eth = getEthereum();
     if (!eth) throw new Error('MetaMask was not detected.');
-    const hexId = toQuantity(EXPECTED_CHAIN_ID);
+    const hexId = `0x${EXPECTED_CHAIN_ID.toString(16)}`;
     try {
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexId }] });
     } catch (err) {
@@ -88,6 +87,7 @@ export function WalletProvider({ children }) {
     if (!eth) throw new Error('MetaMask was not detected.');
     if (!account) await connect();
     if (Number(await eth.request({ method: 'eth_chainId' })) !== EXPECTED_CHAIN_ID) await switchNetwork();
+    const { BrowserProvider } = await loadEthers();
     const provider = new BrowserProvider(eth);
     return provider.getSigner();
   }, [account, connect, switchNetwork]);

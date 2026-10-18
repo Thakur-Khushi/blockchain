@@ -33,3 +33,8 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# End-to-end test output
+e2e/.tmp/
+playwright-report/
+test-results/
