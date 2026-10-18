@@ -10,6 +10,9 @@ export function wellnessRoutes() {
   router.use(authenticate, authorize('patient'));
 
   router.get('/scale', wellness.scale);
+  // Fixed paths before '/:id'.
+  router.get('/analytics', validate({ query: wellness.analyticsQuery }), wellness.getAnalytics);
+  router.get('/export', validate({ query: wellness.exportQuery }), wellness.exportRecords);
   router.post('/', validate({ body: wellness.createBody }), wellness.createRecord);
   router.get('/', validate({ query: wellness.listQuery }), wellness.listRecords);
   router.get('/:id', validate({ params: wellness.recordIdParams }), wellness.getRecord);

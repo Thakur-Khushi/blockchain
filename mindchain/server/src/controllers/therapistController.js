@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { WellnessRecord } from '../models/WellnessRecord.js';
 import { recordAudit } from '../services/auditService.js';
 import { listConsentingPatients } from '../services/consentService.js';
+import { analyticsFor } from '../services/reportService.js';
 import { serializeRecord } from '../services/wellnessRecordService.js';
 import { badRequest } from '../utils/AppError.js';
 import { pageMeta, paginate, paginationSchema } from '../utils/pagination.js';
@@ -104,4 +105,11 @@ export async function listPatientRecords(req, res) {
     return rest;
   });
   res.json({ items, ...pageMeta(q, total) });
+}
+
+// Progress report for a consenting patient (consent re-checked by requireConsent).
+export async function getPatientAnalytics(req, res) {
+  const analytics = await analyticsFor(req.patient._id, req.valid.query, { audience: 'therapist' });
+  await recordAudit({ eventType: 'record_access', actor: req.user._id, subject: req.patient._id, detail: 'analytics' });
+  res.json({ analytics });
 }

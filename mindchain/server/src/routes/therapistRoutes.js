@@ -3,6 +3,7 @@ import * as therapists from '../controllers/therapistController.js';
 import { authenticate, authorize, requireVerifiedTherapist } from '../middleware/auth.js';
 import { requireConsent } from '../middleware/consent.js';
 import { validate } from '../middleware/validate.js';
+import { analyticsQuery } from '../controllers/wellnessController.js';
 
 export function therapistRoutes() {
   const router = Router();
@@ -30,6 +31,13 @@ export function therapistRoutes() {
     requireConsent(),
     validate({ query: therapists.patientRecordsQuery }),
     therapists.listPatientRecords,
+  );
+  router.get(
+    '/patients/:patientId/analytics',
+    requireVerifiedTherapist,
+    requireConsent(),
+    validate({ query: analyticsQuery }),
+    therapists.getPatientAnalytics,
   );
   return router;
 }

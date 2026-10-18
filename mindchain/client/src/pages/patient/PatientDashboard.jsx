@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { DailyTrendChart } from '../../components/charts.jsx';
 import { ChainStatusBadge, ErrorState, PageHeader, StatCard, WalletNotice } from '../../components/common.jsx';
 import { Alert, Button, Card, CardHeader, EmptyState, PageLoader } from '../../components/ui.jsx';
 import { ScorePill } from '../../components/wellness.jsx';
@@ -14,6 +15,7 @@ export default function PatientDashboard() {
     const { data: res } = await api.get('/wellness', { params: { from: addDays(today, -29), to: today, limit: 100 } });
     return res.items;
   }, [today]);
+  const trend = useAsync(async () => (await api.get('/wellness/analytics', { params: { from: addDays(today, -13), to: today } })).data.analytics, [today]);
 
   if (loading) return <PageLoader />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -52,6 +54,15 @@ export default function PatientDashboard() {
         <StatCard label="Average stress (7 days)" value={avgStress ?? '—'} accent="sky" hint="Scale 1–10, lower is calmer" />
         <StatCard label="Check-ins (30 days)" value={`${items.length}/30`} accent="sky" hint={unanchored ? `${unanchored} not yet anchored on-chain` : 'All anchored on-chain'} />
       </div>
+
+      {trend.data && trend.data.completion.checkIns > 0 && (
+        <div className="mt-6">
+          <DailyTrendChart daily={trend.data.daily} height={220} />
+          <p className="mt-2 text-right text-xs">
+            <Link to="/patient/analytics" className="font-medium text-brand-700 hover:underline">Open full analytics</Link>
+          </p>
+        </div>
+      )}
 
       <Card className="mt-6">
         <CardHeader

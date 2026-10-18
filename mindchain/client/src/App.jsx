@@ -15,6 +15,9 @@ const JournalPage = lazy(() => import('./pages/patient/JournalPage.jsx'));
 const IntegrityPage = lazy(() => import('./pages/patient/IntegrityPage.jsx'));
 const ConsentPage = lazy(() => import('./pages/patient/ConsentPage.jsx'));
 const ActivityPage = lazy(() => import('./pages/patient/ActivityPage.jsx'));
+const AnalyticsPage = lazy(() => import('./pages/patient/AnalyticsPage.jsx'));
+const AppointmentsPage = lazy(() => import('./pages/patient/AppointmentsPage.jsx'));
+const TherapistAppointments = lazy(() => import('./pages/therapist/TherapistAppointments.jsx'));
 const TherapistDashboard = lazy(() => import('./pages/therapist/TherapistDashboard.jsx'));
 const TherapistPatients = lazy(() => import('./pages/therapist/TherapistPatients.jsx'));
 const PatientRecords = lazy(() => import('./pages/therapist/PatientRecords.jsx'));
@@ -52,12 +55,15 @@ export default function App() {
               <Route path="/patient/integrity" element={<IntegrityPage />} />
               <Route path="/patient/consent" element={<ConsentPage />} />
               <Route path="/patient/activity" element={<ActivityPage />} />
+              <Route path="/patient/analytics" element={<AnalyticsPage />} />
+              <Route path="/patient/appointments" element={<AppointmentsPage />} />
             </Route>
 
             <Route element={<ProtectedRoute roles={['therapist']} />}>
               <Route path="/therapist" element={<TherapistDashboard />} />
               <Route path="/therapist/patients" element={<TherapistPatients />} />
               <Route path="/therapist/patients/:patientId" element={<PatientRecords />} />
+              <Route path="/therapist/appointments" element={<TherapistAppointments />} />
             </Route>
 
             <Route element={<ProtectedRoute roles={['admin']} />}>

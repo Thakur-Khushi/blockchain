@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChainStatusBadge, ErrorState, PageHeader, Pagination } from '../../components/common.jsx';
+import ExportMenu from '../../components/ExportMenu.jsx';
 import Modal, { ConfirmDialog } from '../../components/Modal.jsx';
 import TxStatus from '../../components/TxStatus.jsx';
 import { Alert, Badge, Button, Card, EmptyState, Input, PageLoader } from '../../components/ui.jsx';
@@ -82,7 +83,12 @@ export default function JournalPage() {
       <PageHeader
         title="Journal history"
         description="Your encrypted check-ins, newest first."
-        action={<Link to="/patient/check-in"><Button>New check-in</Button></Link>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <ExportMenu from={invalidRange ? '' : filters.from} to={invalidRange ? '' : filters.to} onError={(text) => setMessage({ type: 'error', text })} />
+            <Link to="/patient/check-in"><Button>New check-in</Button></Link>
+          </div>
+        }
       />
 
       <Card className="mb-4">

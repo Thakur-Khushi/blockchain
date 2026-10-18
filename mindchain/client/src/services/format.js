@@ -75,6 +75,7 @@ export const AUDIT_LABELS = {
   record_deleted: 'Check-in deleted',
   record_revoked_onchain: 'Record withdrawn on-chain',
   record_verified: 'Record verified',
+  records_exported: 'Records exported',
   record_access: 'Records viewed by therapist',
   access_denied: 'Access denied',
   consent_granted: 'Access granted',

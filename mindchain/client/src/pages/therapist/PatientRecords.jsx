@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import AnalyticsView from '../../components/AnalyticsView.jsx';
 import { ErrorState, PageHeader, Pagination } from '../../components/common.jsx';
 import { Alert, Badge, Button, Card, EmptyState, Input, PageLoader } from '../../components/ui.jsx';
 import { ScorePill } from '../../components/wellness.jsx';
@@ -11,6 +12,7 @@ export default function PatientRecords() {
   const { patientId } = useParams();
   const [filters, setFilters] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
+  const [view, setView] = useState('records');
 
   // Every load triggers a fresh on-chain consent check on the server.
   const summary = useAsync(async () => (await api.get(`/therapists/patients/${patientId}`)).data, [patientId]);
@@ -53,6 +55,19 @@ export default function PatientRecords() {
         Self-reported check-ins. Your access is logged and visible to the patient. Scores are descriptive and are not diagnostic measures.
       </Alert>
 
+      <div className="mb-4 flex gap-2" role="tablist">
+        {[['records', 'Check-ins'], ['report', 'Progress report']].map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium ${view === id ? 'bg-brand-700 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'report' ? (
+        <AnalyticsView endpoint={`/therapists/patients/${patientId}/analytics`} audience="therapist" />
+      ) : (
+      <>
       <Card className="mb-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
@@ -99,6 +114,8 @@ export default function PatientRecords() {
           ))}
           <Pagination page={records.data.page} totalPages={records.data.totalPages} onChange={setPage} />
         </div>
+      )}
+      </>
       )}
     </div>
   );

@@ -11,6 +11,8 @@ export const NAV = {
     { to: '/patient', label: 'Dashboard', icon: 'home', end: true },
     { to: '/patient/check-in', label: 'Daily check-in', icon: 'plus' },
     { to: '/patient/journal', label: 'Journal history', icon: 'book' },
+    { to: '/patient/analytics', label: 'Analytics', icon: 'chart' },
+    { to: '/patient/appointments', label: 'Appointments', icon: 'calendar' },
     { to: '/patient/integrity', label: 'Record integrity', icon: 'shield' },
     { to: '/patient/consent', label: 'Therapist access', icon: 'key' },
     { to: '/patient/activity', label: 'Activity & transactions', icon: 'activity' },
@@ -19,6 +21,7 @@ export const NAV = {
   therapist: [
     { to: '/therapist', label: 'Dashboard', icon: 'home', end: true },
     { to: '/therapist/patients', label: 'My patients', icon: 'users' },
+    { to: '/therapist/appointments', label: 'Appointments', icon: 'calendar' },
     { to: '/wallet', label: 'Wallet', icon: 'wallet' },
   ],
   admin: [

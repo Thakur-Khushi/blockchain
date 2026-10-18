@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { WellnessRecord } from '../models/WellnessRecord.js';
 import { recordAudit } from '../services/auditService.js';
 import { verifyRecordIntegrity } from '../services/integrityService.js';
+import { analyticsFor, rangeIsValid, resolveRange, toCsv } from '../services/reportService.js';
 import { digestsEqual, newRecordId } from '../services/recordDigest.js';
 import { openRecord, sealRecord, serializeRecord } from '../services/wellnessRecordService.js';
 import { AppError, badRequest, conflict, notFound } from '../utils/AppError.js';
@@ -291,3 +292,66 @@ export function scale(_req, res) {
 
 // Shared with other date-filtered endpoints (analytics, appointments).
 export { dateString };
+
+// ------------------------------------------------------------ analytics & export
+
+const rangeQuery = z
+  .object({ from: dateString.optional(), to: dateString.optional() })
+  .transform(resolveRange)
+  .refine(rangeIsValid, { message: 'Date range must be in order and at most 366 days', path: ['from'] });
+
+export const analyticsQuery = rangeQuery;
+
+export async function getAnalytics(req, res) {
+  res.json({ analytics: await analyticsFor(req.user._id, req.valid.query) });
+}
+
+export const exportQuery = z
+  .object({ format: z.enum(['json', 'csv']).default('json'), from: dateString.optional(), to: dateString.optional() })
+  .refine((q) => !q.from || !q.to || q.from <= q.to, { message: '"from" must not be after "to"', path: ['from'] });
+
+const EXPORT_COLUMNS = ['entryDate', 'mood', 'stress', 'journal', 'tags', 'integrity', 'chainStatus', 'txHash', 'recordId', 'digest'];
+
+// The patient's own data, decrypted. Records failing integrity checks are listed
+// with their status but without content.
+export async function exportRecords(req, res) {
+  const q = req.valid.query;
+  const range = { from: q.from ?? '2000-01-01', to: q.to ?? '9999-12-31' };
+  const docs = await WellnessRecord.find({
+    patient: req.user._id,
+    isDeleted: false,
+    entryDate: { $gte: range.from, $lte: range.to },
+  }).sort({ entryDate: 1 });
+
+  const rows = docs.map((doc) => {
+    const opened = openRecord(doc);
+    const ok = opened.status === 'ok';
+    return {
+      entryDate: doc.entryDate,
+      mood: ok ? opened.data.mood : null,
+      stress: ok ? opened.data.stress : null,
+      journal: ok ? opened.data.journal : null,
+      tags: ok ? opened.data.tags : [],
+      integrity: opened.status,
+      chainStatus: doc.chainStatus,
+      txHash: doc.txHash ?? null,
+      recordId: doc.recordId,
+      digest: doc.digest,
+    };
+  });
+  await recordAudit({ eventType: 'records_exported', actor: req.user._id, detail: `${q.format}:${rows.length}` });
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.set('Content-Disposition', `attachment; filename="mindchain-export-${stamp}.${q.format}"`);
+  if (q.format === 'csv') {
+    res.type('text/csv; charset=utf-8').send('\uFEFF' + toCsv(rows, EXPORT_COLUMNS));
+  } else {
+    res.json({
+      exportedAt: new Date(),
+      patient: { id: req.user._id.toString(), name: req.user.name },
+      scales: { mood: MOOD_SCALE, stress: STRESS_SCALE },
+      note: 'Self-reported wellness check-ins. Not a clinical record or diagnosis.',
+      records: rows,
+    });
+  }
+}

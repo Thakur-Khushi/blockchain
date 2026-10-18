@@ -5,6 +5,7 @@ import { config } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { createAuthLimiter } from './middleware/rateLimit.js';
 import { adminRoutes } from './routes/adminRoutes.js';
+import { appointmentRoutes } from './routes/appointmentRoutes.js';
 import { authRoutes } from './routes/authRoutes.js';
 import { auditRoutes, consentRoutes } from './routes/consentRoutes.js';
 import { therapistRoutes } from './routes/therapistRoutes.js';
@@ -59,6 +60,7 @@ export function createApp(options = {}) {
   app.use('/api/chain', chainRoutes());
   app.use('/api/consents', consentRoutes());
   app.use('/api/audit', auditRoutes());
+  app.use('/api/appointments', appointmentRoutes());
 
   app.use(notFoundHandler);
   app.use(errorHandler);
