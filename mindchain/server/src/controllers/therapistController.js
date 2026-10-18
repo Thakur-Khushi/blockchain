@@ -1,10 +1,14 @@
 import { z } from 'zod';
 import { User } from '../models/User.js';
+import { WellnessRecord } from '../models/WellnessRecord.js';
 import { recordAudit } from '../services/auditService.js';
+import { listConsentingPatients } from '../services/consentService.js';
+import { serializeRecord } from '../services/wellnessRecordService.js';
 import { badRequest } from '../utils/AppError.js';
 import { pageMeta, paginate, paginationSchema } from '../utils/pagination.js';
 import { safeText } from '../utils/validators.js';
 import { therapistProfileSchema } from './authController.js';
+import { dateString } from './wellnessController.js';
 
 export const listTherapistsQuery = paginationSchema.extend({
   search: safeText(60).optional(),
@@ -52,4 +56,52 @@ export async function resubmitVerification(req, res) {
   await req.user.save();
   await recordAudit({ eventType: 'therapist_verification_submitted', actor: req.user._id });
   res.json({ user: req.user });
+}
+
+// ------------------------------------------------------------- consented patients
+
+export const patientRecordsQuery = paginationSchema.extend({
+  from: dateString.optional(),
+  to: dateString.optional(),
+});
+
+// Patients whose on-chain grant to this therapist is currently valid.
+export async function listMyPatients(req, res) {
+  if (!req.user.walletAddress) return res.json({ walletLinked: false, items: [] });
+  const items = await listConsentingPatients(req.app.locals.chain, req.user.walletAddress);
+  res.json({ walletLinked: true, items });
+}
+
+// Runs after requireConsent, which has just checked live on-chain consent.
+export async function getPatientSummary(req, res) {
+  const grant = await req.app.locals.chain.getGrant(req.patient.walletAddress, req.user.walletAddress);
+  res.json({
+    patient: { id: req.patient._id.toString(), name: req.patient.name },
+    grant: {
+      grantedAt: grant.grantedAt ? new Date(grant.grantedAt * 1000) : null,
+      expiresAt: grant.expiresAt ? new Date(grant.expiresAt * 1000) : null,
+    },
+  });
+}
+
+export async function listPatientRecords(req, res) {
+  const q = req.valid.query;
+  const filter = { patient: req.patient._id, isDeleted: false };
+  if (q.from || q.to) {
+    filter.entryDate = {};
+    if (q.from) filter.entryDate.$gte = q.from;
+    if (q.to) filter.entryDate.$lte = q.to;
+  }
+  const [docs, total] = await Promise.all([
+    WellnessRecord.find(filter).sort({ entryDate: -1 }).skip(paginate(q).skip).limit(q.limit),
+    WellnessRecord.countDocuments(filter),
+  ]);
+  await recordAudit({ eventType: 'record_access', actor: req.user._id, subject: req.patient._id, detail: `records_list:${docs.length}` });
+
+  // Therapists get the clinical content and integrity status, not anchoring internals.
+  const items = docs.map((d) => {
+    const { anchorHistory: _h, onChainAction: _a, ...rest } = serializeRecord(d);
+    return rest;
+  });
+  res.json({ items, ...pageMeta(q, total) });
 }

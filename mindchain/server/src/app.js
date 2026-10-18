@@ -6,16 +6,26 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { createAuthLimiter } from './middleware/rateLimit.js';
 import { adminRoutes } from './routes/adminRoutes.js';
 import { authRoutes } from './routes/authRoutes.js';
+import { auditRoutes, consentRoutes } from './routes/consentRoutes.js';
 import { therapistRoutes } from './routes/therapistRoutes.js';
+import { chainRoutes, walletRoutes } from './routes/walletRoutes.js';
 import { wellnessRoutes } from './routes/wellnessRoutes.js';
+import { createChainServiceFromConfig } from './services/chainService.js';
 
-// Builds the Express app. Options allow tests to override rate limits.
+// Builds the Express app. Options let tests override rate limits and inject a
+// chain service (e.g. a fake that simulates outages or revoked consent).
 export function createApp(options = {}) {
   const app = express();
   const authLimiter = createAuthLimiter({
     windowMs: options.authRateLimitWindowMs ?? config.AUTH_RATE_LIMIT_WINDOW_MS,
     max: options.authRateLimitMax ?? config.AUTH_RATE_LIMIT_MAX,
   });
+
+  const walletLimiter = createAuthLimiter({
+    windowMs: options.authRateLimitWindowMs ?? config.AUTH_RATE_LIMIT_WINDOW_MS,
+    max: (options.authRateLimitMax ?? config.AUTH_RATE_LIMIT_MAX) * 2,
+  });
+  app.locals.chain = options.chain ?? createChainServiceFromConfig();
 
   app.disable('x-powered-by');
   app.set('trust proxy', options.trustProxy ?? false);
@@ -45,6 +55,10 @@ export function createApp(options = {}) {
   app.use('/api/therapists', therapistRoutes());
   app.use('/api/admin', adminRoutes());
   app.use('/api/wellness', wellnessRoutes());
+  app.use('/api/wallet', walletRoutes({ walletLimiter }));
+  app.use('/api/chain', chainRoutes());
+  app.use('/api/consents', consentRoutes());
+  app.use('/api/audit', auditRoutes());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { ChainUnavailableError } from '../services/chainService.js';
 import { AppError } from '../utils/AppError.js';
 
 export function notFoundHandler(req, _res, next) {
@@ -15,6 +16,10 @@ export function errorHandler(err, req, res, _next) {
   if (err instanceof AppError) {
     status = err.statusCode;
     body = { code: err.code ?? 'ERROR', message: err.message, details: err.details };
+  } else if (err instanceof ChainUnavailableError) {
+    // Fail closed: nothing that depends on the chain is released without it.
+    status = 503;
+    body = { code: 'CHAIN_UNAVAILABLE', message: err.message };
   } else if (err?.type === 'entity.parse.failed') {
     status = 400;
     body = { code: 'BAD_REQUEST', message: 'Malformed JSON body' };
@@ -36,7 +41,9 @@ export function errorHandler(err, req, res, _next) {
     body = { code: 'CONFLICT', message: 'A record with these details already exists' };
   }
 
-  if (status >= 500) {
+  if (status === 503) {
+    console.warn(`[warn] ${req.method} ${req.path}: ${body.message}`);
+  } else if (status >= 500) {
     // Log only the error, never the request body (it may contain journal text or passwords).
     console.error(`[error] ${req.method} ${req.path}:`, err);
   }

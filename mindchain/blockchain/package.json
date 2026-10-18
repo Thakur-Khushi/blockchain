@@ -11,7 +11,8 @@
     "compile": "hardhat build",
     "test": "hardhat test",
     "node": "hardhat node",
-    "deploy:local": "hardhat ignition deploy ignition/modules/MindChain.js --network localhost"
+    "deploy:local": "hardhat ignition deploy ignition/modules/MindChain.js --network localhost --reset && node scripts/export-deployment.js 31337",
+    "export:deployment": "node scripts/export-deployment.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.2.1",

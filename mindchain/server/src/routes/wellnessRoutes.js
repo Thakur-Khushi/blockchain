@@ -19,5 +19,12 @@ export function wellnessRoutes() {
     wellness.updateRecord,
   );
   router.delete('/:id', validate({ params: wellness.recordIdParams }), wellness.deleteRecord);
+  router.get('/:id/verify', validate({ params: wellness.recordIdParams }), wellness.verifyRecord);
+  router.post('/:id/anchor', validate({ params: wellness.recordIdParams, body: wellness.anchorBody }), wellness.anchorRecord);
+  router.post(
+    '/:id/revocation',
+    validate({ params: wellness.recordIdParams, body: wellness.revocationBody }),
+    wellness.confirmRevocation,
+  );
   return router;
 }

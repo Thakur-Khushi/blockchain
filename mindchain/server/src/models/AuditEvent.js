@@ -16,6 +16,7 @@ export const AUDIT_EVENT_TYPES = Object.freeze([
   'record_anchored',
   'record_updated',
   'record_deleted',
+  'record_revoked_onchain',
   'record_verified',
   'record_access',
   'access_denied',

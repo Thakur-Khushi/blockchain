@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { WellnessRecord } from '../models/WellnessRecord.js';
 import { recordAudit } from '../services/auditService.js';
-import { newRecordId } from '../services/recordDigest.js';
+import { verifyRecordIntegrity } from '../services/integrityService.js';
+import { digestsEqual, newRecordId } from '../services/recordDigest.js';
 import { openRecord, sealRecord, serializeRecord } from '../services/wellnessRecordService.js';
-import { conflict, notFound } from '../utils/AppError.js';
+import { AppError, badRequest, conflict, notFound } from '../utils/AppError.js';
 import { pageMeta, paginate, paginationSchema } from '../utils/pagination.js';
 import { safeText } from '../utils/validators.js';
 
@@ -149,6 +150,139 @@ export async function deleteRecord(req, res) {
   await doc.save();
   await recordAudit({ eventType: 'record_deleted', actor: req.user._id, recordId: doc.recordId });
   res.status(204).end();
+}
+
+// ------------------------------------------------------------------ blockchain
+
+const txHash = z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash').transform((s) => s.toLowerCase());
+export const anchorBody = z.object({ txHash: txHash.optional() });
+export const revocationBody = z.object({ txHash });
+
+function requireWallet(user) {
+  if (!user.walletAddress) throw badRequest('Link your wallet before using blockchain features');
+  return user.walletAddress;
+}
+
+// Checks a patient-submitted transaction hash against the chain: it must be a
+// successful call from the patient's linked wallet to the MindChain contract.
+async function loadOwnTransaction(chain, hash, wallet) {
+  const tx = await chain.getContractTransaction(hash);
+  if (!tx) throw new AppError(409, 'Transaction not found or not yet confirmed. Try again shortly.', 'TX_NOT_FOUND');
+  if (!tx.toContract) throw badRequest('This transaction was not sent to the MindChain contract');
+  if (tx.from !== wallet) throw badRequest('This transaction was not sent from your linked wallet');
+  return tx;
+}
+
+// Marks a record as anchored only after the receipt AND the current contract state
+// confirm that this exact digest is registered to the patient's wallet. Without a
+// txHash it recovers the anchor from contract events (e.g. after a lost response).
+export async function anchorRecord(req, res) {
+  const doc = await findOwnRecord(req);
+  const wallet = requireWallet(req.user);
+  const chain = req.app.locals.chain;
+  let hash = req.valid.body.txHash;
+  let action;
+
+  if (hash) {
+    const tx = await loadOwnTransaction(chain, hash, wallet);
+    if (!tx.success) {
+      if (doc.chainStatus !== 'anchored') {
+        doc.chainStatus = 'failed';
+        await doc.save();
+      }
+      await recordAudit({ eventType: 'record_anchored', actor: req.user._id, recordId: doc.recordId, txHash: hash, outcome: 'failure', detail: 'tx_reverted' });
+      throw new AppError(422, 'The transaction failed on-chain. The record was not anchored.', 'TX_FAILED');
+    }
+    const ev = tx.events.find(
+      (e) =>
+        (e.name === 'RecordRegistered' || e.name === 'RecordUpdated') &&
+        e.args.recordId.toLowerCase() === doc.recordId &&
+        digestsEqual(e.args.digest, doc.digest),
+    );
+    if (!ev) throw badRequest('This transaction does not anchor the current version of this record');
+    action = ev.name === 'RecordRegistered' ? 'registered' : 'updated';
+  } else {
+    const events = await chain.getRecordEvents(doc.recordId);
+    const match = [...events].reverse().find((e) => e.digest && digestsEqual(e.digest, doc.digest) && e.owner === wallet);
+    if (!match) throw new AppError(409, 'No on-chain anchor was found for this version of the record', 'NOT_ANCHORED');
+    hash = match.txHash.toLowerCase();
+    action = match.name === 'RecordRegistered' ? 'registered' : 'updated';
+  }
+
+  // Authoritative state check: the receipt alone is not enough (a later update or
+  // revocation could have changed the record).
+  const onChain = await chain.getRecord(doc.recordId);
+  if (!onChain || onChain.revoked || onChain.owner !== wallet || !digestsEqual(onChain.digest, doc.digest)) {
+    throw new AppError(409, 'The on-chain record does not match this version of the record', 'CHAIN_MISMATCH');
+  }
+
+  const alreadyRecorded = doc.anchorHistory.some((h) => h.txHash === hash);
+  doc.set({ chainStatus: 'anchored', txHash: hash, chainId: chain.chainId, anchoredAt: doc.anchoredAt ?? new Date() });
+  if (!alreadyRecorded) {
+    doc.anchorHistory.push({ action, txHash: hash, digest: doc.digest, version: onChain.version, chainId: chain.chainId });
+    await recordAudit({ eventType: 'record_anchored', actor: req.user._id, recordId: doc.recordId, txHash: hash });
+  }
+  await doc.save();
+  res.json({ record: serializeRecord(doc) });
+}
+
+// Confirms that a deleted (or live) record was withdrawn on-chain with revokeRecord().
+export async function confirmRevocation(req, res) {
+  const doc = await WellnessRecord.findOne({ recordId: req.valid.params.id, patient: req.user._id });
+  if (!doc) throw notFound('Wellness record not found');
+  const wallet = requireWallet(req.user);
+  const chain = req.app.locals.chain;
+  const hash = req.valid.body.txHash;
+
+  const tx = await loadOwnTransaction(chain, hash, wallet);
+  if (!tx.success) throw new AppError(422, 'The revocation transaction failed on-chain', 'TX_FAILED');
+  if (!tx.events.some((e) => e.name === 'RecordRevoked' && e.args.recordId.toLowerCase() === doc.recordId)) {
+    throw badRequest('This transaction does not revoke this record');
+  }
+  const onChain = await chain.getRecord(doc.recordId);
+  if (!onChain?.revoked) throw new AppError(409, 'The record is not revoked on-chain', 'CHAIN_MISMATCH');
+
+  if (!doc.anchorHistory.some((h) => h.txHash === hash)) {
+    doc.anchorHistory.push({ action: 'revoked', txHash: hash, version: onChain.version, chainId: chain.chainId });
+    await recordAudit({ eventType: 'record_revoked_onchain', actor: req.user._id, recordId: doc.recordId, txHash: hash });
+  }
+  doc.chainRevoked = true;
+  await doc.save();
+  res.json({ recordId: doc.recordId, chainRevoked: true });
+}
+
+export async function verifyRecord(req, res) {
+  const doc = await findOwnRecord(req);
+  const chain = req.app.locals.chain;
+  const v = await verifyRecordIntegrity(doc, { chain, patientWallet: req.user.walletAddress });
+
+  await recordAudit({
+    eventType: 'record_verified',
+    actor: req.user._id,
+    recordId: doc.recordId,
+    outcome: v.status === 'verified' ? 'success' : 'failure',
+    detail: v.status,
+  });
+  res.json({
+    verification: {
+      recordId: doc.recordId,
+      status: v.status,
+      reason: v.reason,
+      checks: v.checks,
+      onChain: v.onChain,
+      record: {
+        entryDate: doc.entryDate,
+        createdAt: doc.createdAt,
+        version: doc.version,
+        digest: doc.digest,
+        chainStatus: doc.chainStatus,
+        txHash: doc.txHash ?? null,
+        anchoredAt: doc.anchoredAt ?? null,
+      },
+      network: { chainId: chain.chainId, contractAddress: chain.contractAddress },
+      verifiedAt: new Date(),
+    },
+  });
 }
 
 export function scale(_req, res) {

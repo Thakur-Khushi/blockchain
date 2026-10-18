@@ -64,6 +64,20 @@ export function serializeRecord(doc, opened = openRecord(doc)) {
     txHash: doc.txHash ?? null,
     chainId: doc.chainId ?? null,
     anchoredAt: doc.anchoredAt ?? null,
+    // Which contract call the patient must sign to anchor the current version.
+    onChainAction:
+      doc.chainStatus === 'anchored' || doc.isDeleted
+        ? null
+        : (doc.anchorHistory ?? []).some((h) => h.action === 'registered')
+          ? 'update'
+          : 'register',
+    anchorHistory: (doc.anchorHistory ?? []).map((h) => ({
+      action: h.action,
+      txHash: h.txHash ?? null,
+      version: h.version ?? null,
+      chainId: h.chainId ?? null,
+      at: h.at,
+    })),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     integrity: { status: opened.status, reason: opened.reason ?? null },

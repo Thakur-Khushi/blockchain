@@ -29,6 +29,25 @@ const wellnessRecordSchema = new mongoose.Schema(
     chainId: { type: Number },
     anchoredAt: { type: Date },
 
+    // Confirmed on-chain transactions for this record (non-sensitive references only).
+    anchorHistory: {
+      type: [
+        new mongoose.Schema(
+          {
+            action: { type: String, enum: ['registered', 'updated', 'revoked'], required: true },
+            txHash: { type: String, match: /^0x[a-f0-9]{64}$/ },
+            digest: { type: String, match: /^0x[a-f0-9]{64}$/ },
+            version: { type: Number },
+            chainId: { type: Number },
+            at: { type: Date, default: Date.now },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    chainRevoked: { type: Boolean, default: false },
+
     // Deletion crypto-shreds the payload and keeps a tombstone with the digest.
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },

@@ -22,6 +22,14 @@ const schema = z.object({
     .regex(/^(\d+:[0-9a-fA-F]{64})(,\d+:[0-9a-fA-F]{64})*$/, 'ENCRYPTION_PREVIOUS_KEYS must be "version:hex" pairs')
     .optional()
     .or(z.literal('')),
+  // Read-only JSON-RPC endpoint. The server never holds a wallet private key.
+  RPC_URL: z.string().url().default('http://127.0.0.1:8545'),
+  RPC_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  // Written by `npm run deploy:local` in /blockchain. CONTRACT_ADDRESS/CHAIN_ID override it.
+  DEPLOYMENT_FILE: z.string().default('src/config/deployment.json'),
+  CONTRACT_ADDRESS: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional().or(z.literal('')),
+  CHAIN_ID: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().positive().optional()),
+  WALLET_NONCE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(600),
 });
 
 function loadConfig(env = process.env) {

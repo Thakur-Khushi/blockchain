@@ -14,3 +14,7 @@ process.env.ENCRYPTION_KEY_VERSION = '2';
 // A retired key so key-rotation decryption can be tested.
 process.env.TEST_OLD_KEY = crypto.randomBytes(32).toString('hex');
 process.env.ENCRYPTION_PREVIOUS_KEYS = `1:${process.env.TEST_OLD_KEY}`;
+// Unit tests run without a deployed contract (chain disabled) unless a test injects one.
+process.env.DEPLOYMENT_FILE = 'tests/__no_deployment__.json';
+process.env.CHAIN_ID = '31337';
+process.env.WALLET_NONCE_TTL_SECONDS = '60';
