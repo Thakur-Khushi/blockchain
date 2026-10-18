@@ -16,7 +16,7 @@ It is updated as phases are completed.
 
 | Layer | Choice | Reason |
 |---|---|---|
-| Contracts | Solidity 0.8.28, Hardhat 3, Hardhat Ignition, `hardhat-toolbox-mocha-ethers` | Current Hardhat major version; Mocha + Chai + ethers v6 tests |
+| Contracts | Solidity 0.8.34 (optimizer on), Hardhat 3.20, Hardhat Ignition, `hardhat-toolbox-mocha-ethers` | Current Hardhat major version; Mocha + Chai + ethers v6 tests |
 | Backend | Node 24, Express 5, Mongoose 9, `jsonwebtoken`, `bcryptjs`, `helmet`, `express-rate-limit`, `zod`, `ethers` v6 | Express 5 forwards async errors natively; `zod` for validation |
 | Password hashing | `bcryptjs` (bcrypt algorithm, cost 12) | Same algorithm as native `bcrypt` with no native build step on Windows |
 | Backend tests | Node built-in test runner (`node --test`) + Supertest, one throw-away database per test file on the local MongoDB (Jest ESM support is still experimental) | Blockchain calls are injected so that failures and revocations can be simulated deterministically. A separate integration test runs against a real Hardhat node |
@@ -89,6 +89,25 @@ The salt stops anyone guessing low-entropy entries (for example "mood 5, empty j
   5. An audit event is written (`record_access` or `access_denied`).
 - If the chain can't be reached, access is **denied** (fail closed).
 - Limitation, documented in the README: revocation can't remove information a therapist has already viewed or copied.
+
+### 4.5a `MindChain.sol` interface (Phase 4)
+The contract has no owner or admin role. Every write applies only to the caller's own data.
+
+| Function | Caller | Notes |
+|---|---|---|
+| `registerPatient()` | any wallet, once | Emits `PatientRegistered` |
+| `grantAccess(therapist, expiresAt)` | registered patient | Re-granting overwrites the expiry. Rejects the zero address, self-grants and past expiries |
+| `revokeAccess(therapist)` | registered patient | Requires an active grant |
+| `hasAccess(patient, therapist)` | view | Returns true only if the grant is active and has not expired. This is what the backend checks |
+| `getGrant(patient, therapist)` | view | Returns `active`, `grantedAt`, `expiresAt` and `currentlyValid` |
+| `registerRecord(recordId, digest)` | registered patient | Rejects zero values and IDs that already exist |
+| `updateRecord(recordId, newDigest)` | record owner | Increments `version` and rejects an unchanged digest |
+| `revokeRecord(recordId)` | record owner | The record then never verifies again |
+| `getRecord(recordId)` / `recordExists` / `verifyRecord(recordId, digest)` | view | |
+
+Event parameters are only addresses, `bytes32` values and integers. The contract uses custom errors (for example `NotRegisteredPatient`, `NotRecordOwner` and `InvalidExpiry`), which the frontend decodes into readable messages.
+
+**Privacy limitation:** grant events publicly link a patient wallet to a therapist wallet. Patients should use a wallet dedicated to MindChain that isn't tied to their real-world identity.
 
 ### 4.6 Encryption keys
 - `ENCRYPTION_KEY` (32 bytes, hex) comes from an environment variable and is validated at startup. Records store a `keyVersion` so keys can be rotated.
