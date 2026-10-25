@@ -14,21 +14,22 @@ MindChain is a blockchain-based mental health monitoring and patient–therapist
 ## Contents
 
 1. [Features](#features)
-2. [Architecture](#architecture)
-3. [Technology stack](#technology-stack)
-4. [Project structure](#project-structure)
-5. [Prerequisites](#prerequisites)
-6. [Setup and running locally](#setup-and-running-locally)
-7. [MetaMask setup](#metamask-setup)
-8. [Environment variables](#environment-variables)
-9. [Smart contract](#smart-contract)
-10. [Main workflows](#main-workflows)
-11. [Testing](#testing)
-12. [API reference](#api-reference)
-13. [Security and privacy design](#security-and-privacy-design)
-14. [Known limitations](#known-limitations)
-15. [Production notes](#production-notes)
-16. [Troubleshooting](#troubleshooting)
+2. [Screenshots](#screenshots)
+3. [Architecture](#architecture)
+4. [Technology stack](#technology-stack)
+5. [Project structure](#project-structure)
+6. [Prerequisites](#prerequisites)
+7. [Setup and running locally](#setup-and-running-locally)
+8. [MetaMask setup](#metamask-setup)
+9. [Environment variables](#environment-variables)
+10. [Smart contract](#smart-contract)
+11. [Main workflows](#main-workflows)
+12. [Testing](#testing)
+13. [API reference](#api-reference)
+14. [Security and privacy design](#security-and-privacy-design)
+15. [Known limitations](#known-limitations)
+16. [Production notes](#production-notes)
+17. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -48,6 +49,23 @@ MindChain is a blockchain-based mental health monitoring and patient–therapist
 | **Analytics** | Calculated on the server: daily, weekly and monthly trends, check-in completion and streaks, and plain-language summaries. Recharts charts with a table view for each |
 | **Dashboards** | Separate patient, therapist and admin areas. Responsive sidebar and mobile drawer. Loading, empty and error states. Transaction status indicators |
 | **Export** | Patients can download their own history as CSV or JSON |
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Patient dashboard](docs/screenshots/patient-dashboard.png)<br>Patient dashboard | ![Daily check-in anchored on-chain](docs/screenshots/check-in-anchored.png)<br>Daily check-in anchored on-chain |
+| ![Record integrity verification](docs/screenshots/integrity-verified.png)<br>Record integrity verification | ![Therapist consent granted](docs/screenshots/consent-granted.png)<br>Granting therapist access |
+| ![Therapist progress report](docs/screenshots/therapist-progress-report.png)<br>Therapist progress report | ![Appointments](docs/screenshots/appointments.png)<br>Appointments |
+| ![Analytics](docs/screenshots/analytics-30d.png)<br>30-day analytics | ![Wallet linking](docs/screenshots/wallet.png)<br>Wallet linking |
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png)<br>Admin dashboard | ![Admin audit log](docs/screenshots/admin-audit.png)<br>Admin audit log |
+
+<p>
+  <img src="docs/screenshots/mobile-nav.png" alt="Mobile navigation" width="240">
+  <img src="docs/screenshots/mobile-analytics.png" alt="Mobile analytics" width="240">
+</p>
+
+The screenshots are captured by the end-to-end tests using demo data.
 
 ## Architecture
 
